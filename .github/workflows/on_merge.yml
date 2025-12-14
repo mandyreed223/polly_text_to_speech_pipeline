@@ -20,11 +20,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Verify AWS identity (debug)
+      - name: Verify AWS identity
         run: aws sts get-caller-identity
+
+      - name: Sanity check repo structure
+        run: |
+          ls -la
+          test -d lambda || (echo "❌ Missing ./lambda directory" && exit 1)
+          test -f lambda/lambda_function.py || (echo "❌ Missing lambda/lambda_function.py" && exit 1)
 
       - name: Package Lambda (zip)
         run: |
+          rm -f lambda.zip
           cd lambda
           zip -r ../lambda.zip .
 
@@ -36,10 +43,21 @@ jobs:
 
       - name: Invoke Prod API (final payload)
         run: |
-          curl -sS -X POST "${{ secrets.PROD_API_URL }}" \
+          set -e
+          echo "Calling: ${{ secrets.PROD_API_URL }}"
+          RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}\n" -X POST "${{ secrets.PROD_API_URL }}" \
             -H "Content-Type: application/json" \
-            -d '{"text":"This is from a Lambda."}'
+            -d '{"text":"This is from PROD Lambda via GitHub Actions (merge to main)."}')
 
-      - name: Verify S3 upload (optional)
+          echo "$RESPONSE"
+
+          STATUS=$(echo "$RESPONSE" | sed -n 's/^HTTP_STATUS://p')
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ API call failed with status $STATUS"
+            exit 1
+          fi
+
+      - name: Verify S3 upload (latest 5)
         run: |
           aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }}/polly-audio/prod/ --recursive | tail -n 5
+
