@@ -1,6 +1,6 @@
 name: Polly Prod Audio (Merge to Main)
 
-on:
+"on":
   push:
     branches:
       - main
@@ -36,3 +36,4 @@ jobs:
           OUTPUT_KEY: polly-audio/prod.mp3
         run: |
           python synthesize.py
+
