@@ -1,1 +1,1 @@
-Hello! Testing Polly text to speech.
+Hello and welcome to our Polly text to speech project!
