@@ -2,59 +2,133 @@
 
 **Teaching the cloud to read aloud — automatically.**
 
-This project demonstrates a serverless CI/CD pipeline that converts written text into audio using **Amazon Polly**, **GitHub Actions**, and **Amazon S3**.  
-Any time content changes in the repository, an automated workflow generates a fresh `.mp3` file — no servers, no manual uploads, and no machine learning models to train.
+This project demonstrates a **serverless, event-driven CI/CD pipeline** that converts written text into audio using **Amazon Polly**, **AWS Lambda**, **API Gateway**, **Amazon S3**, and **GitHub Actions**.
 
-The goal of this project is to show how AI services can be cleanly integrated into modern DevOps workflows to improve accessibility while keeping systems lightweight and cost-effective.
+Any time content changes in the repository, an automated workflow deploys Lambda code and triggers text-to-speech generation — producing fresh `.mp3` files without servers, manual uploads, or ML model training.
 
 ---
 
 ## 🧠 Project Overview
 
-**Pixel Learning Co.** is a digital-first education startup focused on accessibility and automation.  
-While written course materials worked well, the team wanted to ensure that every lesson could also be consumed as audio, supporting learners who prefer listening or require assistive technologies.
+**Pixel Learning Co.** is a digital-first education startup focused on accessibility and automation.
 
-Rather than recording audio manually or maintaining complex infrastructure, this project uses **Amazon Polly’s managed text-to-speech service** combined with **GitHub Actions** to automatically generate and publish audio files whenever content is updated.
+While written course materials worked well, the team wanted to ensure every lesson could also be consumed as audio — supporting learners who prefer listening or require assistive technologies.
+
+Rather than recording audio manually or maintaining complex infrastructure, this project uses **Amazon Polly’s managed text-to-speech service** combined with **GitHub Actions CI/CD workflows** to automatically generate and publish audio whenever content changes.
 
 ---
 
 ## 🎯 What This Project Does
 
-- 📄 Reads text content from `speech.txt`  
-- 🗣️ Uses Amazon Polly to convert text into natural-sounding speech  
-- 🎵 Outputs audio as an `.mp3` file  
-- ☁️ Uploads audio to Amazon S3 under a structured prefix  
-- 🔁 Automates the entire process using GitHub Actions  
-- 🧪 Separates beta and production audio using pull request and merge workflows  
+- 📄 Reads text content from a repository  
+- 🗣️ Converts text into natural-sounding speech using Amazon Polly  
+- 🎵 Outputs audio as `.mp3` files  
+- ☁️ Uploads audio to Amazon S3 using environment-specific prefixes  
+- 🔁 Automates deployments and execution with GitHub Actions  
+- 🧪 Separates beta and production behavior using PRs vs merges  
 
 ---
 
 ## 🔁 How the Pipeline Works (High Level)
 
-1. Text content is updated in the repository  
-2. GitHub Actions detects the change  
-3. A Python script runs using **boto3**  
-4. Amazon Polly synthesizes speech  
-5. The resulting `.mp3` file is uploaded to Amazon S3  
+1. Text content is updated in GitHub  
+2. GitHub Actions detects the event  
+3. Lambda code is packaged and deployed  
+4. API Gateway invokes the appropriate Lambda  
+5. Amazon Polly synthesizes speech  
+6. The resulting `.mp3` file is uploaded to Amazon S3  
 
-**Workflow Outputs:**
-- Pull Requests → `polly-audio/beta.mp3`  
-- Merge to Main → `polly-audio/prod.mp3`  
+### Workflow Outputs
+
+| GitHub Event   | Environment | S3 Output Path                                |
+|----------------|-------------|-----------------------------------------------|
+| Pull Request   | Beta        | `s3://<bucket>/polly-audio/beta/<timestamp>.mp3` |
+| Merge to main  | Production  | `s3://<bucket>/polly-audio/prod/<timestamp>.mp3` |
+
+---
+
+## 🧪 Environment Separation
+
+This project intentionally mirrors real-world CI/CD practices:
+
+### Beta
+- Triggered by pull requests  
+- Uses `PollyTextToSpeech_Beta` Lambda  
+- Writes only to:  
+  `s3://<bucket>/polly-audio/beta/`
+
+### Production
+- Triggered by merges to main  
+- Uses `PollyTextToSpeech_Prod` Lambda  
+- Writes only to:  
+  `s3://<bucket>/polly-audio/prod/`
+
+A single codebase is reused, with behavior controlled via environment variables.
 
 ---
 
 ## 🛠️ Technologies Used
 
-- **Amazon Polly** – Text-to-Speech (Neural voices)  
+- **Amazon Polly** – Neural text-to-speech  
+- **AWS Lambda** – Serverless execution  
+- **Amazon API Gateway** – HTTP invocation  
 - **Amazon S3** – Audio file storage  
 - **GitHub Actions** – CI/CD automation  
 - **Python (boto3)** – AWS service integration  
-- **IAM** – Secure credential management via GitHub Secrets  
+- **IAM** – Secure permissions and least privilege  
+
+---
+
+## ⚙️ Setup & Prerequisites
+
+To run this project yourself, you’ll need:
+
+- An AWS account  
+- An S3 bucket (example:  
+  `s3://polly-audio-bucket18`  
+  )  
+- Two Lambda functions:  
+  - `PollyTextToSpeech_Beta`  
+  - `PollyTextToSpeech_Prod`  
+- API Gateway routes:  
+  - `POST /beta/synthesize`  
+  - `POST /prod/synthesize`  
+- GitHub repository secrets:  
+  - `AWS_ACCESS_KEY_ID`  
+  - `AWS_SECRET_ACCESS_KEY`  
+  - `AWS_REGION`  
+  - `S3_BUCKET_NAME`  
+  - `BETA_API_URL`  
+  - `PROD_API_URL`  
+
+---
+
+## ▶️ Testing the Pipeline
+
+### Beta (Pull Request)
+1. Create a feature branch  
+2. Open a pull request into `main`  
+3. GitHub Actions deploys the beta Lambda  
+4. Audio appears in:  
+   `s3://<bucket>/polly-audio/beta/`
+
+### Production (Merge)
+1. Merge the PR into `main`  
+2. GitHub Actions deploys the prod Lambda  
+3. Audio appears in:  
+   `s3://<bucket>/polly-audio/prod/`
 
 ---
 
 ## ♿ Why This Matters
 
 Accessibility shouldn’t be an afterthought.  
-By automating text-to-speech as part of the CI/CD process, this project ensures that audio content is always **up to date, scalable, and easy to maintain** — without adding operational overhead.
+
+By embedding text-to-speech directly into the CI/CD pipeline, this project ensures audio content is:  
+- Always up to date  
+- Automatically generated  
+- Scalable and cost-effective  
+- Easy to maintain  
+
+All without adding operational complexity.
 
