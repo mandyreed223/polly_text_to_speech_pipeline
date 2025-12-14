@@ -1,1 +1,1 @@
-Hello from Pixel Learning Co! This is our test and if you can hear it then, our CI/CD pipeline successfully used Amazon Polly to turn text into speech.
+Hello! Testing Polly text to speech.
